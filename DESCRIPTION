@@ -1,0 +1,14 @@
+Package: mp2rageR
+Type: Package
+Title: MP2RAGE-related utilities
+Version: 0.1.0
+Author: Sriranga Kashyap <kashyap.sriranga@gmail.com>
+Maintainer: Sriranga Kashyap <kashyap.sriranga@gmail.com>
+Description: This package contains the R implementation of MATLAB code from José P. Marques. 
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.0
+Imports: 
+    neurobase,
+    pracma
