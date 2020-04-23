@@ -1,7 +1,7 @@
-#' @title mprage_func
+#' @title mp2rage_mprage_func
 #'
 #' @description
-#' \code{mprage_func} is part of the \pkg{mp2rageR} package.
+#' \code{mp2rage_mprage_func} is part of the \pkg{mp2rageR} package.
 #'
 #' \pkg{mp2rageR} is the R implementation of MATLAB code made publicly available by \href{https://github.com/JosePMarques/MP2RAGE-related-scripts}{José P. Marques}.
 #'
@@ -13,7 +13,7 @@
 #' @return Data as a numerical array
 #' @importFrom pracma strcmp isempty linspace
 #' @examples
-#' Signal <- mprage_func(mprage_tr,
+#' Signal <- mp2rage_mprage_func(mprage_tr,
 #'                       inv_times_a_b,
 #'                       num_z_slices,
 #'                       flash_tr,
@@ -22,7 +22,7 @@
 #'                       t1s,
 #'                       ...)
 
-mprage_func <-
+mp2rage_mprage_func <-
   function(mprage_tr,
            inv_times_a_b,
            num_z_slices,
