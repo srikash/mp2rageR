@@ -1,7 +1,7 @@
-#' @title mp2rage_lookuptable
+#' @title mp2rage_b1_sa2rage_lookuptable
 #'
 #' @description
-#' \code{mp2rage_lookuptable} is part of the \pkg{mp2rageR} package.
+#' \code{mp2rage_b1_sa2rage_lookuptable} is part of the \pkg{mp2rageR} package.
 #'
 #' \pkg{mp2rageR} is the R implementation of MaTLab code made publicly
 #' available by \href{https://github.com/JosePMarques/MP2RAGE-related-scripts}{José P. Marques}.
@@ -16,14 +16,14 @@
 #' @return List of numerical arrays (in order): intensity, t1_vector, intensity_before_comb
 #' @importFrom pracma isempty
 #' @examples
-#' list_of_intensity_t1_vector_intensity_before_comb <- mp2rage_lookuptable(mprage_tr,
+#' list_of_intensity_t1_vector_intensity_before_comb <- mp2rage_b1_sa2rage_lookuptable(mprage_tr,
 #'                                                                          inv_times_a_b,
 #'                                                                          flip_angle_a_b_deg,
 #'                                                                          num_z_slices,
 #'                                                                          flash_tr,
 #'                                                                          sequence_type,
 #'                                                                          ...)
-mp2rage_lookuptable <-
+mp2rage_b1_sa2rage_lookuptable <-
   function(mprage_tr,
            inv_times_a_b,
            flip_angle_a_b_deg,

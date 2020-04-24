@@ -12,7 +12,6 @@
 #' @export
 #' @return Data as a numerical array
 #' @importFrom pracma strcmp isempty linspace
-#' @importFrom ANTsR antsRegistration
 #' @examples
 #' Signal <- mprage_func(mprage_tr,
 #'                       inv_times_a_b,
