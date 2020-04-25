@@ -60,9 +60,9 @@ mp2rage_bloch_func <-
     if (n_images != length(flip_angle_a_b_rad)) {
       flip_angle_a_b_rad <- rep(flip_angle_a_b_rad, times = n_images)
     }
-    if (n_images != length(flash_tr)) {
-      flash_tr <- rep(flash_tr, times = n_images)
-    }
+    # if (n_images != length(flash_tr)) {
+    #   flash_tr <- rep(flash_tr, times = n_images)
+    # }
 
     if (length(num_z_slices) == 2) {
       num_z_bef <- num_z_slices[1]
@@ -89,6 +89,10 @@ mp2rage_bloch_func <-
 
       e_td[1] <- exp(-td[1] / t1s)
       e_td[n_images + 1] = exp(-td[n_images + 1] / t1s)
+
+      cos_alpha_e1 <- matrix()
+      one_minus_e1 <- matrix()
+      sin_alpha <- matrix()
 
       if (n_images > 1)
       {
@@ -135,6 +139,10 @@ mp2rage_bloch_func <-
 
       e_td[n_images + 1] <- exp(-td[n_images + 1] / t1s)
 
+      cos_alpha_e1 <- matrix()
+      one_minus_e1 <- matrix()
+      sin_alpha <- matrix()
+
       if (n_images > 1) {
         for (k in seq(2, n_images)) {
           td[k] = inv_times_a_b[k] - inv_times_a_b[k - 1] - ta
@@ -155,7 +163,7 @@ mp2rage_bloch_func <-
       # term relative to acquisition
       mz_steady_state_numerator <-
         mz_steady_state_numerator * cos_alpha_e1[k] ^ num_z_slices +
-        m0 * (1 - e_1[k]) * (1 - (cos_alpha_e1[k]) ^ nZslices) / (1 - cos_alpha_e1[k])
+        m0 * (1 - e_1) * (1 - (cos_alpha_e1[k]) ^ num_z_slices) / (1 - cos_alpha_e1[k])
 
       # term relative to relaxation after
       mz_steady_state_numerator <-
@@ -169,7 +177,7 @@ mp2rage_bloch_func <-
       mz_steady_state_numerator / mz_steady_state_denominator
 
     # allocate
-    signal <- zeros(1, n_images)
+    signal <- vector()
 
     m <- 1
     temp <- (-inversion_efficiency *
@@ -183,14 +191,14 @@ mp2rage_bloch_func <-
       (1 - ((cos_alpha_e1[m]) ^ (num_z_bef))) /
       (1 - (cos_alpha_e1[m]))
 
-    signal[1] <- sin_alpha[m] * temp
+    signal[m] <- sin_alpha[m] * (temp)
 
     if (n_images > 1) {
-      for (m in seq_along(2, n_images))
+      for (m in seq(2, n_images))
       {
         temp <- temp *
           ((cos_alpha_e1[m - 1]) ^ (num_z_aft)) +
-          M0 *
+          m0 *
           (1 - e_1) *
           (1 - ((cos_alpha_e1[m - 1]) ^ (num_z_aft))) /
           (1 - (cos_alpha_e1[m - 1]))
@@ -199,12 +207,12 @@ mp2rage_bloch_func <-
                    m0 *
                    (1 - e_td[m])) *
           ((cos_alpha_e1[m]) ^ (num_z_bef)) +
-          M0 *
+          m0 *
           (1 - e_1) *
           (1 - ((cos_alpha_e1[m]) ^ (num_z_bef))) /
           (1 - (cos_alpha_e1[m]))
 
-        signal[m] <- sin_alpha[m] * temp
+        signal[m] <- sin_alpha[m] * (temp)
       }
     }
 

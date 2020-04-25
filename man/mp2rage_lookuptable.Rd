@@ -5,7 +5,7 @@
 \title{mp2rage_lookuptable}
 \usage{
 mp2rage_lookuptable(
-  mp2rage_tr,
+  mprage_tr,
   inv_times_a_b,
   flip_angle_a_b_deg,
   num_z_slices,
@@ -33,13 +33,18 @@ For methodological details, see \href{https://www.sciencedirect.com/science/arti
 Please cite the aforementioned paper if you used this method in your work.
 }
 \examples{
-list_of_intensity_t1_vector_intensity_before_comb <- mp2rage_lookuptable(mp2rage_tr,
+list_of_intensity_t1_vector_intensity_before_comb <- mp2rage_lookuptable(mprage_tr,
                                                                          inv_times_a_b,
                                                                          flip_angle_a_b_deg,
                                                                          num_z_slices,
                                                                          flash_tr,
                                                                          sequence_type,
-                                                                         ...)
+                                                                         n_images = 2,
+                                                                         b0 = 7.0,
+                                                                         m0 = 1.0,
+                                                                         inversion_efficiency = 0.96,
+                                                                         all_data = 0,
+                                                                         t1_vector = NULL)
 }
 \author{
 Sriranga Kashyap

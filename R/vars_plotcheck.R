@@ -1,0 +1,12 @@
+mprage_tr=5.0
+inv_times_a_b=c(5,3)
+inv_times_a_b=c(900e-3,2750e-3)
+flip_angle_a_b_deg=c(5,3)
+num_z_slices=c(120,120)
+flash_tr=6.9e-3
+sequence_type="normal"
+n_images = 2
+b0 = 7
+m0 = 1
+inversion_efficiency = 0.96
+all_data = 1

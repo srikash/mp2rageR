@@ -13,7 +13,7 @@
 #'
 #' @param inv1 (required) path to the magnitude MP2RAGE INV1 NIfTI file
 #' @param inv2 (required) path to the magnitude MP2RAGE INV2 NIfTI file
-#' @param uni (required) path to the magnitude MP2RAGE UNI NIfTI file
+#' @param uni (required) path to the magnitude M?mp2P2RAGE UNI NIfTI file
 #' @param out_uni (optional)  path to background suppressed MP2RAGE uni NIfTI file
 #' @param regularisation (optional) a scalar (1-10) noise supression strength
 #' @export
@@ -27,8 +27,7 @@ mp2rage_robust_combination <-
            in_uni,
            out_uni = NULL,
            regularisation = 1) {
-
-        # Functions used for robust combination
+    # Functions used for robust combination
     mp2rage_robust_func <- function (inv1 , inv2 , beta) {
       return((Conj(inv1) * inv2 - beta) / (inv1 ^ 2 + inv2 ^ 2 + 2 * beta))
     }
@@ -80,10 +79,10 @@ mp2rage_robust_combination <-
     b <- data_inv2 * 1 # simple conversion to double
     c <- (data_inv2 ^ 2) * data_uni_rescaled
 
-    data_inv1_pos <- pos_rootsquares(-a, b, -c)
+    data_inv1_pos <- pos_rootsquares(-a, b,-c)
     data_inv1_pos[is.na(data_inv1_pos)] <- 0 # Remove NaNs
 
-    data_inv1_neg <- neg_rootsquares(-a, b, -c)
+    data_inv1_neg <- neg_rootsquares(-a, b,-c)
     data_inv1_neg[is.na(data_inv1_neg)] <- 0 # Remove NaNs
 
     data_inv1_final <- data_inv1_corrected

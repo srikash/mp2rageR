@@ -21,7 +21,7 @@ mp2rage_robust_combination(
 
 \item{inv2}{(required) path to the magnitude MP2RAGE INV2 NIfTI file}
 
-\item{uni}{(required) path to the magnitude MP2RAGE UNI NIfTI file}
+\item{uni}{(required) path to the magnitude M?mp2P2RAGE UNI NIfTI file}
 }
 \value{
 Data as a numerical array (not NIfTI, unless out_uni is specified)
