@@ -19,21 +19,21 @@
 #'                       flash_tr,
 #'                       flip_angle_a_b_deg,
 #'                       sequence_type="normal",
-#'                       t1s,
+#'                       t1_vector,
 #'                       ...)
 
 mp2rage_bloch_func <-
   function(mprage_tr,
-           inv_times_a_b,
-           num_z_slices,
            flash_tr,
+           inv_times_a_b,
            flip_angle_a_b_deg,
+           num_z_slices,
            sequence_type = "normal",
-           t1s,
-           n_images = 2,
+           t1_vector = NULL,
            b0 = 7,
            m0 = 1,
-           inversion_efficiency = 0.96)
+           inversion_efficiency = 0.96,
+           n_images = 2)
   {
     # fat sat check
     if (isTRUE(sequence_type == "normal")) {
@@ -74,11 +74,11 @@ mp2rage_bloch_func <-
     }
     ## calculating the relevant timing and associated values
     if (isTRUE(water_excitation)) {
-      e_1 <- exp(-flash_tr / t1s)
-      e_1a <- exp(-pulse_space / t1s)
+      e_1 <- exp(-flash_tr / t1_vector)
+      e_1a <- exp(-pulse_space / t1_vector)
       e_2a <-
         exp(-pulse_space / 0.06) #60 ms is an estimation of the T2*
-      e_1b <- exp(-(flash_tr - pulse_space) / t1s)
+      e_1b <- exp(-(flash_tr - pulse_space) / t1_vector)
 
       ta <- num_z_slices * flash_tr
       ta_bef <- num_z_bef * flash_tr
@@ -87,8 +87,8 @@ mp2rage_bloch_func <-
       td[1] <- inv_times_a_b[1] - ta_bef
       td[n_images + 1] = mprage_tr - inv_times_a_b[n_images] - ta_aft
 
-      e_td[1] <- exp(-td[1] / t1s)
-      e_td[n_images + 1] = exp(-td[n_images + 1] / t1s)
+      e_td[1] <- exp(-td[1] / t1_vector)
+      e_td[n_images + 1] = exp(-td[n_images + 1] / t1_vector)
 
       cos_alpha_e1 <- matrix()
       one_minus_e1 <- matrix()
@@ -98,7 +98,7 @@ mp2rage_bloch_func <-
       {
         for (k in seq(2, n_images)) {
           td[k] <- inv_times_a_b[k] - inv_times_a_b[k - 1] - ta
-          e_td[k] <- exp(-td[k] / t1s)
+          e_td[k] <- exp(-td[k] / t1_vector)
         }
       }
 
@@ -109,12 +109,12 @@ mp2rage_bloch_func <-
           (sin(flip_angle_a_b_rad[k] / 2)) ^ 2 *
           (e_2a * e_1b)
 
-        one_minus_e1[k] <- (1 - E_1A) *
+        one_minus_e1[k] <- (1 - e_1a) *
           cos(flip_angle_a_b_rad[k] / 2) *
           e_1b +
           (1 - e_1b)
 
-        sin_alpha[k] <- sin(fliprad[k] / 2) *
+        sin_alpha[k] <- sin(flip_angle_a_b_rad[k] / 2) *
           cos(flip_angle_a_b_rad[k] / 2) *
           (e_1a + e_2a)
       }
@@ -122,7 +122,7 @@ mp2rage_bloch_func <-
 
     if (isTRUE(normal_sequence_type))
     {
-      e_1 <- exp(-flash_tr / t1s)
+      e_1 <- exp(-flash_tr / t1_vector)
       ta <- num_z_slices * flash_tr
       ta_bef <- num_z_bef * flash_tr
       ta_aft <- num_z_aft * flash_tr
@@ -131,13 +131,13 @@ mp2rage_bloch_func <-
       td[1] <- inv_times_a_b[1] - ta_bef[1]
 
       e_td <- zeros(1, n_images + 1)
-      e_td[1] <- exp(-td[1] / t1s)
+      e_td[1] <- exp(-td[1] / t1_vector)
 
       td[n_images + 1] <- mprage_tr -
         inv_times_a_b[n_images] -
         ta_aft
 
-      e_td[n_images + 1] <- exp(-td[n_images + 1] / t1s)
+      e_td[n_images + 1] <- exp(-td[n_images + 1] / t1_vector)
 
       cos_alpha_e1 <- matrix()
       one_minus_e1 <- matrix()
@@ -146,7 +146,7 @@ mp2rage_bloch_func <-
       if (n_images > 1) {
         for (k in seq(2, n_images)) {
           td[k] = inv_times_a_b[k] - inv_times_a_b[k - 1] - ta
-          e_td[k] = exp(-td[k] / t1s)
+          e_td[k] = exp(-td[k] / t1_vector)
         }
       }
       for (k in seq(1, n_images)) {

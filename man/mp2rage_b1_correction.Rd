@@ -4,7 +4,14 @@
 \alias{mp2rage_b1_correction}
 \title{mp2rage_b1_correction}
 \usage{
-mp2rage_b1_correction(param_list_mp2rage, in_b1_map = NULL, is_sa2rage = TRUE)
+mp2rage_b1_correction(
+  in_b1_map,
+  is_sa2rage = TRUE,
+  in_uni,
+  param_list_sa2rage,
+  param_list_mp2rage,
+  inversion_efficiency = 0.96
+)
 }
 \value{
 Data as a numerical array
@@ -17,14 +24,12 @@ Data as a numerical array
 For methodological details, see \href{https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.1910150117}{MPRAGE paper} and \href{https://www.sciencedirect.com/science/article/abs/pii/S1053811909010738}{MP2RAGE paper}.
 }
 \examples{
-Signal <- mprage_func(mprage_tr,
-                      inv_times_a_b,
-                      num_z_slices,
-                      flash_tr,
-                      flip_angle_a_b_deg,
-                      sequence_type="normal",
-                      t1s,
-                      ...)
+b1_corr_t1_corr_uni_corr <- mp2rage_b1_correction(in_b1_map,
+is_sa2rage = TRUE,
+in_uni,
+param_list_sa2rage,
+param_list_mp2rage,
+inversion_efficiency = 0.96)
 }
 \author{
 Sriranga Kashyap

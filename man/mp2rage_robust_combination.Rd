@@ -13,15 +13,15 @@ mp2rage_robust_combination(
 )
 }
 \arguments{
+\item{in_inv1}{(required) path to the magnitude MP2RAGE INV1 NIfTI file}
+
+\item{in_inv2}{(required) path to the magnitude MP2RAGE INV2 NIfTI file}
+
+\item{in_uni}{(required) path to the magnitude M?mp2P2RAGE UNI NIfTI file}
+
 \item{out_uni}{(optional)  path to background suppressed MP2RAGE uni NIfTI file}
 
 \item{regularisation}{(optional) a scalar (1-10) noise supression strength}
-
-\item{inv1}{(required) path to the magnitude MP2RAGE INV1 NIfTI file}
-
-\item{inv2}{(required) path to the magnitude MP2RAGE INV2 NIfTI file}
-
-\item{uni}{(required) path to the magnitude M?mp2P2RAGE UNI NIfTI file}
 }
 \value{
 Data as a numerical array (not NIfTI, unless out_uni is specified)
@@ -36,7 +36,11 @@ For methodological details, see \href{https://www.sciencedirect.com/science/arti
 Please cite the aforementioned papers if you used these methods in your work.
 }
 \examples{
-mp2rage_robust <- mp2rage_robust_combination("sub-01_inv1.nii.gz","sub-01_inv2.nii.gz","sub-01_uni.nii.gz","sub-01_out_uni.nii.gz",regularisation = 10)
+mp2rage_robust <- mp2rage_robust_combination("sub-01_inv1.nii.gz",
+"sub-01_inv2.nii.gz",
+"sub-01_uni.nii.gz",
+"sub-01_out_uni.nii.gz",
+regularisation = 10)
 }
 \author{
 Sriranga Kashyap

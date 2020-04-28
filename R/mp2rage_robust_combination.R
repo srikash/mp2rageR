@@ -11,23 +11,27 @@
 #'
 #' @author Sriranga Kashyap
 #'
-#' @param inv1 (required) path to the magnitude MP2RAGE INV1 NIfTI file
-#' @param inv2 (required) path to the magnitude MP2RAGE INV2 NIfTI file
-#' @param uni (required) path to the magnitude M?mp2P2RAGE UNI NIfTI file
+#' @param in_inv1 (required) path to the magnitude MP2RAGE INV1 NIfTI file
+#' @param in_inv2 (required) path to the magnitude MP2RAGE INV2 NIfTI file
+#' @param in_uni (required) path to the magnitude M?mp2P2RAGE UNI NIfTI file
 #' @param out_uni (optional)  path to background suppressed MP2RAGE uni NIfTI file
 #' @param regularisation (optional) a scalar (1-10) noise supression strength
 #' @export
 #' @return Data as a numerical array (not NIfTI, unless out_uni is specified)
 #' @importFrom neurobase readnii writenii
 #' @examples
-#' mp2rage_robust <- mp2rage_robust_combination("sub-01_inv1.nii.gz","sub-01_inv2.nii.gz","sub-01_uni.nii.gz","sub-01_out_uni.nii.gz",regularisation = 10)
+#' mp2rage_robust <- mp2rage_robust_combination("sub-01_inv1.nii.gz",
+#' "sub-01_inv2.nii.gz",
+#' "sub-01_uni.nii.gz",
+#' "sub-01_out_uni.nii.gz",
+#' regularisation = 10)
 mp2rage_robust_combination <-
   function(in_inv1,
            in_inv2,
            in_uni,
            out_uni = NULL,
            regularisation = 1) {
-    # Functions used for robust combination
+    ## Functions used for robust combination
     mp2rage_robust_func <- function (inv1 , inv2 , beta) {
       return((Conj(inv1) * inv2 - beta) / (inv1 ^ 2 + inv2 ^ 2 + 2 * beta))
     }
@@ -53,7 +57,7 @@ mp2rage_robust_combination <-
         }
       }
 
-    # Load data from NIfTI filenames
+    ## Load data from NIfTI filenames
     nii_inv1 <- readnii(in_inv1)
     nii_inv2 <- readnii(in_inv2)
     nii_uni <- readnii(in_uni)
@@ -62,11 +66,11 @@ mp2rage_robust_combination <-
     data_inv2 <- nii_inv2@.Data
     data_uni <- nii_uni@.Data
 
-    # Rescale uni between -0.5 to 0.5
+    ### Rescale uni between -0.5 to 0.5
 
     data_uni_rescaled <- rescale_intensities(data_uni)
 
-    # Fix inv1 polarity
+    ### Fix inv1 polarity
     data_inv1 <- data_inv1 * 1.0
     data_inv1_corrected <- sign(data_uni_rescaled) * data_inv1
 
@@ -79,10 +83,10 @@ mp2rage_robust_combination <-
     b <- data_inv2 * 1 # simple conversion to double
     c <- (data_inv2 ^ 2) * data_uni_rescaled
 
-    data_inv1_pos <- pos_rootsquares(-a, b,-c)
+    data_inv1_pos <- pos_rootsquares(-a, b, -c)
     data_inv1_pos[is.na(data_inv1_pos)] <- 0 # Remove NaNs
 
-    data_inv1_neg <- neg_rootsquares(-a, b,-c)
+    data_inv1_neg <- neg_rootsquares(-a, b, -c)
     data_inv1_neg[is.na(data_inv1_neg)] <- 0 # Remove NaNs
 
     data_inv1_final <- data_inv1_corrected
@@ -102,11 +106,10 @@ mp2rage_robust_combination <-
     noise_level <-
       regularisation * mean(data_inv2[1:dim(data_inv2)[1], (dim(data_inv2)[2] -
                                                               10):dim(data_inv2)[2], (dim(data_inv2)[3] - 10):dim(data_inv2)[3]])
-
     mp2rage_robust <-
       mp2rage_robust_func(data_inv1_final, data_inv2, noise_level ^ 2)
 
-    # Check for output or return calculations
+    ### Check for output or return calculations
     if (is.null(out_uni)) {
       return(mp2rage_robust)
     } else {

@@ -6,16 +6,16 @@
 \usage{
 mp2rage_bloch_func(
   mprage_tr,
-  inv_times_a_b,
-  num_z_slices,
   flash_tr,
+  inv_times_a_b,
   flip_angle_a_b_deg,
+  num_z_slices,
   sequence_type = "normal",
-  t1s,
-  n_images = 2,
+  t1_vector = NULL,
   b0 = 7,
   m0 = 1,
-  inversion_efficiency = 0.96
+  inversion_efficiency = 0.96,
+  n_images = 2
 )
 }
 \value{
@@ -35,7 +35,7 @@ Signal <- mp2rage_bloch_func(mprage_tr,
                       flash_tr,
                       flip_angle_a_b_deg,
                       sequence_type="normal",
-                      t1s,
+                      t1_vector,
                       ...)
 }
 \author{

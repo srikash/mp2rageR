@@ -11,172 +11,457 @@
 #'
 #' @export
 #' @return Data as a numerical array
-#' @importFrom pracma strcmp isempty linspace
+#' @importFrom pracma strcmp isempty
+#' @importFrom stats spline
+#' @importFrom akima bicubic
+#' @importFrom signal interp1
+#' @importFrom neurobase readnii writenii
 #' @examples
-#' Signal <- mprage_func(mprage_tr,
-#'                       inv_times_a_b,
-#'                       num_z_slices,
-#'                       flash_tr,
-#'                       flip_angle_a_b_deg,
-#'                       sequence_type="normal",
-#'                       t1s,
-#'                       ...)
+#' b1_corr_t1_corr_uni_corr <- mp2rage_b1_correction(in_b1_map,
+#' is_sa2rage = TRUE,
+#' in_uni,
+#' param_list_sa2rage,
+#' param_list_mp2rage,
+#' inversion_efficiency = 0.96)
 mp2rage_b1_correction <-
-  function(param_list_mp2rage,
-           in_b1_map = NULL,
-           is_sa2rage = TRUE)
+  function(in_b1_map,
+           is_sa2rage = TRUE,
+           # if FALSE, assumes TFL
+           in_uni,
+           param_list_sa2rage,
+           param_list_mp2rage,
+           inversion_efficiency = 0.96)
   {
-    # """ This function corrects the bias-field corrected T1-weighted image (`t1w_uni`-attribute)
-    #       and the quantitative T1 map (`t1map`-attribute) for B1 inhomogenieties using a B1 field map.
-    #       (see Marques and Gruetter, 2013).
-    #       It assumes that the B1 field map is either a ratio of the real and intended
-    #       flip angle (range of approximately 0 - 2) *or* the percentage of the real
-    #       vs intended flip angle (range of approximately 0 - 200).
-    #
-    #       If the B1 map has a different resolution, it is resampled to the resolution
-    #       of INV1 and INV2. *This function assumes your MP2RAGE images and the B1 map
-    #       are in the same space*.
-    #
-    #       If the B1 map is not immediately acquired after the MP2RAGE sequence,
-    #       you should register the (magnitude image corresponding to) the B1 map to
-    #       INV1/INV2 first.
-    #
-    #       The corrected images are stored in the `t1w_uni_b1_corrected` and the
-    #       `t1_b1_corrected`-attributes as well as returned as a tuple
-    #
-    #
-    #       Args:
-    #           B1 (filename): B1 field map, either as a ratio or as a percentage. If
-    #                          set to None, use self.B1 (set when the MP2RAGE class was
-    #                          initialized).
-    #           check_B1_range (bool): whether the fuction should check whether the range
-    #                                  of the B1 fieldmap makes sense (centered at 1, range of
-    #                                  roughly 0-2 or 0-200).
-    #
-    #       Returns:
-    #           (tuple): tuple containing:
-    #
-    #               t1w_uni_b1_corrected: A T1-weighted image corrected for B1 inhomogenieties
-    #               t1map_b1_corrected: A quantiative T1-weighted image corrected for B1 inhomogenieties
-    #
-    #
-    #       """
+    if (isTRUE(is_sa2rage)) {
+      if (is.null(in_b1_map)) {
+        stop("b1_map is not specified")
+      } else if (is.null(param_list_sa2rage)) {
+        stop("param_list_sa2rage is not specified")
+      } else {
+        nii_b1 = readnii(in_b1_map)
+        data_b1 = nii_b1@.Data
+        nii_uni = readnii(in_uni)
+        data_uni = nii_uni@.Data
+      }
+    }
+    else {
+      if (is.null(in_b1_map)) {
+        stop("b1_map is not specified")
+      } else {
+        print("is_sa2rage = FALSE")
+        nii_b1 = readnii(in_b1_map)
+        data_b1 = nii_b1@.Data
 
-    if (is.null(file_b1_map)) {
-      stop("B1 map is not specified")
+        nii_uni = readnii(in_uni)
+        data_uni = nii_uni@.Data
+      }
+    }
+
+    # sanity check to see how B1 sensitive your sequence was
+    b1_vector <- seq(from = 0.6, to = 1.4, by = 0.2)
+    for (j in seq_along(b1_vector)) {
+      list_of_intensity_t1_vector_intensity_before_comb <-
+        mp2rage_lookuptable(
+          param_list_mp2rage$mprage_tr,
+          param_list_mp2rage$flash_tr,
+          param_list_mp2rage$inv_times_a_b,
+          b1_vector[j] * param_list_mp2rage$flip_angle_a_b_deg,
+          param_list_mp2rage$num_z_slices,
+          sequence_type =
+            "normal",
+          b0 = 7,
+          m0 = 1,
+          inversion_efficiency = 0.96,
+          n_images = 2,
+          all_data = 0
+        )
+    }
+
+    mp2rage_amp <-
+      list_of_intensity_t1_vector_intensity_before_comb$intensity
+    t1_vector_initial <-
+      list_of_intensity_t1_vector_intensity_before_comb$t1_vector
+    intensity_before_comb <-
+      list_of_intensity_t1_vector_intensity_before_comb$intensity_before_comb
+    rm(list_of_intensity_t1_vector_intensity_before_comb)
+
+    if (b0 == 7.0) {
+      t1_wm <- 1.1
+      t1_gm <- 1.85
+      t1_csf <- 3.9
+      b1_vector <- seq(from = 0.6, to = 1.4, by = 0.2)
+    } else if (b0 == 3) {
+      t1_wm <- 0.85
+      t1_gm <- 1.35
+      t1_csf <- 2.8
+      b1_vector <- seq(from = 0.8, to = 1.2, by = 0.1)
     } else {
-      print(">>>> Loading B1 map")
-      nii_b1 = readnii(file_b1_map)
-      data_b1 = nii_b1@.Data
+      t1_wm <- 1.1
+      t1_gm <- 1.85
+      t1_csf <- 3.9
+      b1_vector <- seq(from = 0.6, to = 1.4, by = 0.2)
+    }
+    # gcf=figure(3);
+    # set(gcf,'Color',[1 1 1]);
+    # hold off
+    # for B1=0.6:0.2:1.4
+    # [MP2RAGEamp T1vector IntensityBeforeComb]=
+    #   MP2RAGE_lookuptable(
+    #     2,
+    #     MP2RAGE.TR,
+    #     MP2RAGE.TIs,
+    #     B1*MP2RAGE.FlipDegrees,
+    #     MP2RAGE.NZslices,
+    #     MP2RAGE.TRFLASH,
+    #     'normal');
+    # plot(MP2RAGEamp,T1vector,'color',[0.5 0.5 0.5]*B1,'Linewidth',2)
+    # hold on
+    # end
+    # legend('B1=0.6','B1=0.8','B1=1','B1=1.2','B1=1.4','B1=1.6')
+
+    # definition of range of B1s and T1s and creation of MP2RAGE and Sa2RAGE lookupvector to make sure the input data for the rest of the code is the Sa2RAGEimg and the MP2RAGEimg
+    b1_vector <- seq(from = 0.005, to = 1.9, by = 0.05)
+    t1_vector <- seq(from = 0.5, to = 5.2, by = 0.05)
+
+    list_of_intensity_t1_vector_intensity_before_comb <-
+      mp2rage_lookuptable(
+        param_list_mp2rage$mprage_tr,
+        param_list_mp2rage$flash_tr,
+        param_list_mp2rage$inv_times_a_b,
+        param_list_mp2rage$flip_angle_a_b_deg,
+        param_list_mp2rage$num_z_slices,
+        sequence_type =
+          "normal",
+        b0 = 7,
+        m0 = 1,
+        inversion_efficiency = 0.96,
+        n_images = 2,
+        all_data = 0
+      )
+
+
+    # rescale uni image between -0.5 and 0.5
+    data_uni_scaled <- data_uni / 4095 - 0.5
+
+    if (isTRUE(is_sa2rage)) {
+      list_of_b1_vector_intensity_signal <-
+        mp2rage_b1_sa2rage_lookuptable(
+          param_list_sa2rage$mprage_tr,
+          param_list_sa2rage$flash_tr,
+          param_list_sa2rage$inv_times_a_b,
+          param_list_sa2rage$flip_angle_a_b_deg,
+          param_list_sa2rage$num_z_slices,
+          sequence_type = "normal",
+          t1_vector = 1.5,
+          b0 = 7,
+          m0 = 1,
+          inversion_efficiency = 0.96,
+          n_images = 2
+        )
+
+      # create sa2rageimg from b1
+      data_b1_scaled <- data_b1 / 1000
+
+      data_sa2rage_vector <-
+        signal::interp1(
+          x = list_of_b1_vector_intensity_signal$b1_vector,
+          y = c(list_of_b1_vector_intensity_signal$intensity),
+          xi = as.vector(data_b1_scaled),
+          method = "linear",
+          extrap = T
+        )
+
+      data_sa2rage <-
+        array(data_sa2rage_vector, dim(data_b1_scaled))
     }
 
-    if (isTRUE(sa2rage)) {
-      data_b1_deg = data_b1 / 100 # in degrees
+    # create a lookup table of MP2RAGE intensities as a function of B1 and T1
+    mp2rage_matrix <- matrix(
+      data = NA,
+      nrow = length(b1_vector),
+      ncol = length(t1_vector)
+    )
+
+    for (k in seq_along(b1_vector)) {
+      list_of_intensity_t1_vector = mp2rage_lookuptable(
+        param_list_mp2rage$mprage_tr,
+        param_list_mp2rage$flash_tr,
+        param_list_mp2rage$inv_times_a_b,
+        b1_vector[k] * param_list_mp2rage$flip_angle_a_b_deg,
+        param_list_mp2rage$num_z_slices,
+        sequence_type =
+          "normal",
+        b0 = 7,
+        m0 = 1,
+        inversion_efficiency = 0.96,
+        n_images = 2,
+        all_data = 0
+      )
+
+      mp2rage_matrix[k, ] <- signal::interp1(
+        x = list_of_intensity_t1_vector$t1_vector,
+        y = c(list_of_intensity_t1_vector$intensity),
+        xi = t1_vector,
+        method = "linear",
+        extrap = F
+      )
     }
 
-    # creates a lookup table of MP2RAGE intensities as a function of B1 and T1
-    b1_vector = seq(from = 0.005, to = 2.5, by = 0.005)
-    t1_vector =  seq(from = 0.05, to = 5.0, by = 0.05)
+    mp2rage_matrix[mp2rage_matrix == 0] = NA
 
-    # mp2rage_matrix = zeros(length(b1_vector), length(t1_vector))
-    #
-    # list_of_intensity_t1_vector <-
-    #   list(intensity, t1_vector, intensity_before_comb)
-    # for n in seq_along(b1_vector) {
-    #   for b1 in seq_along(b1_vector) {
-    #     flip_angle_corr = b1 * as.array(flip_angle_a_b)
-    #
-    #     list_of_intensity_t1_vector = mp2rage_lookuptable(
-    #       mprage_tr,
-    #       inv_times_a_b,
-    #       flip_angle_corr,
-    #       num_z_slices,
-    #       flash_tr,
-    #       sequence_type,
-    #       n_images = 2,
-    #       inversion_efficiency = 0.96,
-    #       b0 = 7,
-    #       all_data = 0
-    #     )
-    #
-    #     temp = interp1(t1_vector, intensity, method = "linear")
-    #     mp2rage_matrix[n,] = temp[t1_vector]
-    #
-    #     #     return MP2RAGEmatrix
-    #
-    #     # make the matrix  MP2RAGEMatrix into T1_matrix(B1,ratio)
-    #     npoints = 40
-    #
-    #     MP2RAGE_vector = np.linspace(-0.5, 0.5, npoints)
-    #
-    #
-    #     T1matrix = np.zeros((len(B1_vector), npoints))
-    #
-    #     for k, b1val in enumerate(B1_vector):if np.isnan(MP2RAGEmatrix[k,:]).any():signal = MP2RAGEmatrix[k,:].copy()
-    #     signal[np.isnan(signal)] = np.linspace(-0.5,-1, np.isnan(signal).sum())
-    #
-    #     f = interpolate.interp1d(signal,
-    #                              T1_vector,
-    #                              bounds_error = False,
-    #                              fill_value = 'extrapolate')#fill_value='extrapolate')
-    #
-    #     T1matrix[k,:] = f(MP2RAGE_vector)
-    #
-    #     else:signal = MP2RAGEmatrix[k,:]
-    #     f = interpolate.interp1d(
-    #       np.sort(MP2RAGEmatrix[k,:]),
-    #       T1_vector[np.argsort(MP2RAGEmatrix[k,:])],
-    #       'cubic',
-    #       bounds_error = False,
-    #       fill_value = 'extrapolate'
-    #     )
-    #     T1matrix[k, :] = f(MP2RAGE_vector)
-    #
-    #
-    #     # *** Create correted T1 map ***
-    #     # Make interpolation function that gives T1, given B1 and T1w signal
-    #     f = interpolate.RectBivariateSpline(B1_vector,
-    #                                         MP2RAGE_vector,
-    #                                         T1matrix,
-    #                                         kx = 1,
-    #                                         ky = 1)
-    #
-    #
-    #     x = B1.get_data()
-    #
-    #     # Rescale T1w signal to [-.5, .5]
-    #     y = self.t1w_uni.get_data() / 4095 - .5
-    #
-    #     # Precache corrected T1 map
-    #     t1c = np.zeros_like(x)
-    #
-    #     # Make a mask that excludes non-interesting voxels
-    #     mask = (x != 0) & (y != 0) & ~ np.isnan(y)
-    #
-    #     # Interpolate T1-corrected map
-    #     t1c[mask] = f(x[mask], y[mask], grid = False)
-    #     self.t1map_b1_corrected = nb.Nifti1Image(t1c * 1000, self.t1map.affine)
-    #
-    #     # *** Create corrected T1-weighted image ***
-    #     Intensity, T1vector,   _   = MP2RAGE_lookuptable(
-    #       self.MPRAGE_tr,
-    #       self.invtimesAB,
-    #       self.flipangleABdegree,
-    #       self.nZslices,
-    #       self.FLASH_tr,
-    #       self.sequence,
-    #       nimages = 2,
-    #       inversion_efficiency = self.inversion_efficiency,
-    #       B0 = self.B0,
-    #       all_data = 0
-    #     )
-    #
-    #     f = interpolate.interp1d(T1vector,
-    #                              Intensity,
-    #                              bounds_error = False,
-    #                              fill_value = -0.5)
-    #     t1w_uni_corrected = (f(t1c) + .5) * 4095
-    #     self.t1w_uni_b1_corrected = nb.Nifti1Image(t1w_uni_corrected, self.t1w_uni.affine)
-    #
-    #     return self.t1map_b1_corrected, self.t1w_uni_b1_corrected
+    if (isTRUE(is_sa2rage)) {
+      # create a lookup table of Sa2RAGE intensities as a function of B1 and T1
+      sa2rage_matrix <- matrix(
+        data = NA,
+        nrow = length(t1_vector),
+        ncol = length(b1_vector)
+      )
+
+      for (k in seq_along(t1_vector)) {
+        list_of_b1_vector_intensity = mp2rage_b1_sa2rage_lookuptable(
+          param_list_sa2rage$mprage_tr,
+          param_list_sa2rage$flash_tr,
+          param_list_sa2rage$inv_times_a_b,
+          param_list_sa2rage$flip_angle_a_b_deg,
+          param_list_sa2rage$num_z_slices,
+          sequence_type =
+            "normal",
+          t1_vector = t1_vector[k],
+          b0 = 7,
+          m0 = 1,
+          inversion_efficiency = 0.96,
+          n_images = 2
+        )
+
+        sa2rage_matrix[k, ] <-  signal::interp1(
+          x = list_of_b1_vector_intensity$b1_vector,
+          y = c(list_of_b1_vector_intensity$intensity),
+          xi = b1_vector,
+          method = "linear",
+          extrap = T
+        )
+      }
+      # imagesc(C = sa2rage_matrix, col = jet.colors(1000))
+
+      ## make the sa2rage_matrix into b1_matrix(t1,ratio)
+      sa2rage_vector <-
+        seq(min(as.vector(sa2rage_matrix)), max(as.vector(sa2rage_matrix)), length.out = 40)
+
+      b1_matrix <- matrix(
+        data = NA,
+        nrow = length(t1_vector),
+        ncol = length(sa2rage_vector)
+      )
+
+      for (k in seq_along(t1_vector)) {
+        if (any(is.na(sa2rage_matrix[k,])) == TRUE)
+        {
+          b1_matrix[k, ] = 0
+        }
+        else
+        {
+          temp <- spline(
+            x = sa2rage_matrix[k, ],
+            y = c(b1_vector),
+            xout = sa2rage_vector,
+            method = "fmm"
+          )
+
+          b1_matrix[k,] <- temp$y
+
+          rm(temp)
+
+        }
+      }
+      # imagesc(C = b1_matrix, col = jet.colors(1000))
+    }
+
+    ## make the mp2rage_matrix into t1_matrix(b1,ratio)
+    mp2rage_vector <-
+      seq(from = -0.5,
+          to = 0.5,
+          length.out = 40)
+
+    t1_matrix <- matrix(
+      data = NA,
+      nrow = length(b1_vector),
+      ncol = length(mp2rage_vector)
+    )
+
+    for (k in seq_along(b1_vector)) {
+      if (isTRUE(any(is.na(mp2rage_matrix[k, ]))))
+      {
+        temp <- mp2rage_matrix[k,]
+        temp[is.na(temp)] <-
+          seq(
+            from = -0.5 - eps(x = 1),
+            to = -1,
+            length.out = length(which(is.na(temp) == TRUE))
+          )
+        temp2 <- signal::interp1(temp,
+                                 c(t1_vector),
+                                 mp2rage_vector,
+                                 method = "linear",
+                                 extrap = T)
+        t1_matrix[k,] <- temp2
+        rm(temp)
+        rm(temp2)
+      }
+      else
+      {
+        temp <- spline(
+          x = mp2rage_matrix[k,],
+          y = c(t1_vector),
+          xout = mp2rage_vector,
+          method = "fmm"
+        )
+
+        t1_matrix[k, ] <- temp$y
+
+        rm(temp)
+      }
+    }
+    # imagesc(C = t1_matrix, col = jet.colors(1000))
+
+    ## iterative correction of T1 and B1 estimates
+    t1_temp_img <-
+      array(data = 1.5, dim = dim(data_uni)) #t1_temp.img
+
+    if (isTRUE(is_sa2rage)) {
+      b1_temp_img <- data_sa2rage #b1_temp.img
+      data_sa2rage[which(is.na(data_sa2rage))] <- -0.5 #sa2rage.img
+
+      for (k in seq(3))
+      {
+        print(paste(">>>> Iteration", as.character(k)))
+        #### B1
+        b1_temp_img_mid = b1_temp_img[, dim(b1_temp_img)[2] / 2,]
+        b1_temp_interp <- akima::bicubic(
+          x = sa2rage_vector,
+          #40
+          y = c(t1_vector),
+          # 95
+          z = t(b1_matrix),
+          # dimensions different in MATLAB code
+          # 95x40
+          x0 = data_sa2rage,
+          y0 = t1_temp_img
+        )
+
+        # output is vector, needs to reshaped to image size
+        data_b1_corr <-
+          array(data = b1_temp_interp$z, dim = dim(data_sa2rage))
+        data_b1_corr[which(is.na(data_b1_corr))] = 2
+
+        ## Rescale B1
+        data_b1_corr <- (data_b1_corr) * 1000
+
+        b1_temp_img_mid2 = data_b1_corr[, dim(data_b1_corr)[2] / 2,]
+
+        # image((b1_temp_img_mid2 - b1_temp_img_mid) * 1000, col = gray.colors(1000))
+
+        #### T1
+        t1_temp_img_mid = t1_temp_img[, dim(t1_temp_img)[2] / 2,]
+        t1_temp_interp <- akima::bicubic(
+          x = mp2rage_vector,
+          #40
+          y = c(b1_vector),
+          # 95
+          z = t(t1_matrix),
+          # 95x40
+          x0 = data_uni_scaled,
+          y0 = data_b1_corr
+        )
+        # output is vector, needs to reshaped to image size
+        data_t1_corr <-
+          array(data = t1_temp_interp$z, dim = dim(data_uni))
+        data_t1_corr[which(is.na(data_t1_corr))] = 4
+        ## Rescale T1
+        data_t1_corr <- (data_t1_corr) * 1000
+
+        t1_temp_img_mid2 = data_t1_corr[, dim(data_t1_corr)[2] / 2,]
+
+        # image((t1_temp_img_mid2 - t1_temp_img_mid) * 1000, col = gray.colors(1000))
+
+
+      }
+    } else {
+      #### T1
+      t1_temp_img_mid = t1_temp_img[, dim(t1_temp_img)[2] / 2, ]
+      t1_temp_interp <- akima::bicubic(
+        x = mp2rage_vector,
+        #40
+        y = c(b1_vector),
+        # 95
+        z = t(t1_matrix),
+        # 95x40
+        x0 = data_uni_scaled,
+        y0 = data_b1
+      )
+      # output is vector, needs to reshaped to image size
+      data_t1_corr <-
+        array(data = t1_temp_interp$z, dim = dim(data_uni))
+
+      data_t1_corr[which(is.na(data_t1_corr))] = 4
+
+      ## Rescale T1
+      data_t1_corr <- (data_t1_corr) * 1000
+
+      t1_temp_img_mid2 = data_t1_corr[, dim(data_t1_corr)[2] / 2, ]
+
+      # image((t1_temp_img_mid2 - t1_temp_img_mid) * 1000, col = gray.colors(1000))
+    }
+
+
+    ## Make the B1 corrected UNI image and put B1 and T1 in ms scale
+    list_of_intensity_t1_vector = mp2rage_lookuptable(
+      param_list_mp2rage$mprage_tr,
+      param_list_mp2rage$flash_tr,
+      param_list_mp2rage$inv_times_a_b,
+      param_list_mp2rage$flip_angle_a_b_deg,
+      param_list_mp2rage$num_z_slices,
+      sequence_type =
+        "normal",
+      b0 = 7,
+      m0 = 1,
+      inversion_efficiency = 0.96,
+      n_images = 2,
+      all_data = 0
+    )
+    nii_uni_corr <- nii_uni
+    data_uni_corr <- data_uni_scaled
+
+    data_uni_corr <-
+      array(
+        data = signal::interp1(
+          x = list_of_intensity_t1_vector$t1_vector,
+          y = c(list_of_intensity_t1_vector$intensity),
+          xi = as.vector(data_t1_corr),
+          method = "linear",
+          extrap = T
+        ),
+        dim = size(data_t1_corr)
+      )
+
+    data_uni_corr[which(is.na(data_uni_corr))] <- -0.5
+    data_uni_corr_rescaled <-
+      round(4095 * (data_uni_corr + 0.5))
+
+
+    if (isTRUE(is_sa2rage)) {
+      return(
+        list(
+          b1_corr = data_b1_corr,
+          t1_corr = data_t1_corr,
+          uni_corr = data_uni_corr_rescaled
+        )
+      )
+    } else {
+      return(list(
+        b1_corr = data_b1,
+        t1_corr = data_t1_corr,
+        uni_corr = data_uni_corr_rescaled
+      ))
+    }
+
   }
