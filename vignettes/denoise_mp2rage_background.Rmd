@@ -1,0 +1,59 @@
+---
+title: "Denoise UNI background"
+author: "Sriranga Kashyap"
+date: "`r Sys.Date()`"
+output: rmarkdown::pdf_document
+vignette: >
+  %\VignetteIndexEntry{Denoise UNI background}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, include=FALSE}
+library(akima)
+library(mp2rageR)
+library(neurobase)
+library(pracma)
+library(signal)
+```
+
+### Set working directory
+```{r data directory,eval=FALSE,message=FALSE,warnings=FALSE}
+working_dir <- "~/mp2rage_data"
+```
+
+### Provide input NIfTI filenames
+```{r input data,eval=FALSE,message=FALSE,warnings=FALSE}
+# MP2RAGE INV1
+nii_inv1 <- paste0(getwd(), "/MP2RAGE_INV1.nii.gz")
+
+# MP2RAGE INV2
+nii_inv2 <- paste0(getwd(), "/MP2RAGE_INV2.nii.gz")
+
+# MP2RAGE UNI
+nii_uni <- paste0(getwd(), "/MP2RAGE_UNI.nii.gz")
+
+```
+
+### Provide output NIfTI filenames
+```{r output data,eval=FALSE,message=FALSE,warnings=FALSE}
+# MP2RAGE UNI clean
+out_uni <- paste0(getwd(), "/MP2RAGE_UNI_clean.nii.gz")
+```
+
+### Supress background noise
+```{r begin supression,eval=FALSE,message=FALSE,warnings=FALSE}
+mp2rage_robust_combination(
+  in_inv1 = nii_inv1,
+  in_inv2 = nii_inv2,
+  in_uni = nii_uni,
+  out_uni = out_uni,
+  regularisation = 10)
+```

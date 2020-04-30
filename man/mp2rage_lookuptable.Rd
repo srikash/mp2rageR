@@ -19,32 +19,67 @@ mp2rage_lookuptable(
   all_data = 0
 )
 }
+\arguments{
+\item{mprage_tr}{(required) \emph{TR} of the MP2RAGE in s}
+
+\item{flash_tr}{(required) \emph{TR} of the FLASH readout in s}
+
+\item{inv_times_a_b}{(required) \eqn{c(TI1,TI2)}}
+
+\item{flip_angle_a_b_deg}{(required) \emph{c(\eqn{\alpha}1,\eqn{\alpha}2)}}
+
+\item{num_z_slices}{(required) \eqn{slices_per_slab * c(slice_partial_fourier-0.5,0.5)}}
+
+\item{sequence_type}{(has default) \emph{"normal"}, set to \emph{NULL} for water excitation}
+
+\item{t1_vector}{(has default) \emph{NULL}, provide input vector as necessary}
+
+\item{b0}{(has default) \emph{7.0} can be \emph{3.0}}
+
+\item{m0}{(has default) \emph{1.0}}
+
+\item{inversion_efficiency}{(has default) \emph{0.96} is the efficiency of the Siemens MP2RAGE inversion pulse}
+
+\item{n_images}{(has default) \emph{2}, change if required}
+
+\item{all_data}{(has default) \emph{0}}
+}
 \value{
 List of numerical arrays (in order): intensity, t1_vector, intensity_before_comb
 }
 \description{
 \code{mp2rage_lookuptable} is part of the \pkg{mp2rageR} package.
 
-\pkg{mp2rageR} is the R implementation of MaTLab code made publicly
-available by \href{https://github.com/JosePMarques/MP2RAGE-related-scripts}{José P. Marques}.
+\pkg{mp2rageR} is the R implementation of \href{https://github.com/JosePMarques/MP2RAGE-related-scripts}{MATLAB code} made publicly available by José P. Marques.
 
-For methodological details, see \href{https://www.sciencedirect.com/science/article/abs/pii/S1053811909010738}{MP2RAGE paper}.
+For methodological details, see \href{https://www.sciencedirect.com/science/article/abs/pii/S1053811909010738}{MP2RAGE}.
 
 Please cite the aforementioned paper if you used this method in your work.
 }
 \examples{
-intensity_t1_vector_intensity_bef_comb <- mp2rage_lookuptable(mprage_tr,
-inv_times_a_b,
-flip_angle_a_b_deg,
-num_z_slices,
-flash_tr,
-sequence_type,
-n_images = 2,
-b0 = 7.0,
-m0 = 1.0,
-inversion_efficiency = 0.96,
-all_data = 0,
-t1_vector = NULL)
+\dontrun{
+mp2rage_params <- list(
+                   mprage_tr = 5.0,
+                   flash_tr = 6.9e-3,
+                   inv_times_a_b = c(900e-3,2750e-3),
+                   flip_angle_a_b_deg = c(5,3),
+                   num_z_slices = c(120,120)
+                   )
+
+out_list <- mp2rage_lookuptable(
+                   mp2rage_params$mprage_tr,
+                   mp2rage_params$flash_tr,
+                   mp2rage_params$inv_times_a_b,
+                   mp2rage_params$flip_angle_a_b_deg,
+                   mp2rage_params$num_z_slices,
+                   sequence_type = "normal",
+                   t1_vector = NULL,
+                   b0 = 7,
+                   m0 = 1,
+                   inversion_efficiency = 0.96,
+                   n_images = 2,
+                   all_data = 0
+                   )}
 }
 \author{
 Sriranga Kashyap

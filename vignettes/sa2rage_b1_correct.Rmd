@@ -1,0 +1,138 @@
+---
+title: "Sa2RAGE B1 correct"
+author: "Sriranga Kashyap"
+date: "`r Sys.Date()`"
+output: rmarkdown::pdf_document
+vignette: >
+  %\VignetteIndexEntry{Sa2RAGE B1 correct}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, include=FALSE}
+library(akima)
+library(mp2rageR)
+library(neurobase)
+library(pracma)
+library(signal)
+```
+
+### Set working directory
+```{r data directory,eval=FALSE,message=FALSE,warnings=FALSE}
+working_dir <- "~/mp2rage_data"
+```
+
+### Provide input NIfTI filenames
+```{r input data,eval=FALSE,message=FALSE,warnings=FALSE}
+# MP2RAGE UNI
+in_uni <- paste0(working_dir, "/MP2RAGE_UNI.nii.gz")
+
+# Sa2RAGE B1 map
+in_b1_map <- paste0(working_dir, "/sub01_sa2rage_2p0mm_iso_B1map_reg-to-mp2rage.nii")
+```
+
+### Provide output NIfTI filenames
+```{r output data,eval=FALSE,message=FALSE,warnings=FALSE}
+# MP2RAGE B1 Corrected UNI
+out_uni <- paste0(working_dir, "/MP2RAGE_UNI_B1_corrected.nii.gz")
+
+# MP2RAGE B1 Corrected T1
+out_t1 <- paste0(working_dir, "/MP2RAGE_T1map_B1_corrected.nii.gz")
+```
+
+### Provide MP2RAGE sequence parameters from protocol
+```{r mp2rage parameters,eval=FALSE,message=FALSE,warnings=FALSE}
+# MP2RAGE parameters
+slices_per_slab <- 240
+slice_partial_fourier <- 8 / 8
+
+mp2rage_params <-
+  list(
+    mprage_tr = 5.0,
+    flash_tr = 6.9e-3,
+    inv_times_a_b = c(900e-3, 2750e-3),
+    flip_angle_a_b_deg = c(5, 3),
+    num_z_slices = NULL
+  )
+
+mp2rage_params$num_z_slices <-
+  slices_per_slab * c(slice_partial_fourier - 0.5, 0.5)
+```
+
+### Provide Sa2RAGE sequence parameters from protocol
+```{r sa2rage parameters,eval=FALSE,message=FALSE,warnings=FALSE}
+# Sa2RAGE parameters
+base_resolution <- 128
+phase_partial_fourier <- 6 / 8
+phase_ipat <- 2
+ref_lines <- 24
+
+sa2rage_params <- list(
+  mprage_tr = 2.4,
+  flash_tr = 2.2e-3,
+  inv_times_a_b = c(58e-3, 1800e-3),
+  flip_angle_a_b_deg = c(4, 10),
+  num_z_slices = NULL
+)
+
+sa2rage_params$num_z_slices <-
+  base_resolution * c(phase_partial_fourier - 0.5, 0.5) /
+  phase_ipat + c(ref_lines / 2, ref_lines / 2) * (1 - 1 / phase_ipat)
+```
+
+### Register B1 map to MP2RAGE
+```{r register data,eval=FALSE,message=FALSE,warnings=FALSE}
+## If b1 map is not registered, do this first:
+
+mp2rage_register_sa2rage(
+       in_sa2rage_inv2 = "Sa2RAGE_INV2.nii.gz",
+       in_sa2rage_b1_map = "Sa2RAGE_B1map.nii.gz",
+       in_mp2rage_inv2 = "MP2RAGE_INV2.nii.gz",
+       out_reg_b1_map = "Sa2RAGE_B1map_reg-to-mp2rage.nii.gz")
+
+# Skip if already in register
+```
+
+### B1 correction
+```{r begin estimation,eval=FALSE,message=FALSE,warnings=FALSE}
+# Load data
+nii_uni <- readnii(in_uni)
+data_uni <- nii_uni@.Data
+
+nii_b1_map <- readnii(in_b1_map)
+data_b1_map <- nii_b1_map@.Data
+
+# Start B1 correction
+b1_corrected_list <- mp2rage_b1_correct(
+  in_b1_map_data = data_b1_map,
+  is_sa2rage = TRUE,
+  in_uni_data = data_uni,
+  param_list_sa2rage = sa2rage_params,
+  param_list_mp2rage = mp2rage_params,
+  inversion_efficiency = 0.96,
+  b0 = 7
+)
+
+# b1_corr_data <- b1_corrected_list$b1_corr
+t1_corr_data <- b1_corrected_list$t1_corr
+uni_corr_data <- b1_corrected_list$uni_corr
+```
+
+### Write outputs
+```{r write output,eval=FALSE,message=FALSE,warnings=FALSE}
+# Load NIfTI structure for output files
+nii_t1_corr <- nii_uni
+nii_t1_corr@.Data <- t1_corr_data
+writenii(nim = nii_t1_corr, filename = out_t1)
+
+nii_uni_corr <- nii_uni
+nii_uni_corr@.Data <- uni_corr_data
+writenii(nim = out_uni_corr, filename = out_uni)
+```

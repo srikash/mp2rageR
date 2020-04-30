@@ -3,24 +3,55 @@
 #' @description
 #' \code{mp2rage_bloch_func} is part of the \pkg{mp2rageR} package.
 #'
-#' \pkg{mp2rageR} is the R implementation of MATLAB code made publicly available by \href{https://github.com/JosePMarques/MP2RAGE-related-scripts}{José P. Marques}.
+#' \pkg{mp2rageR} is the R implementation of \href{https://github.com/JosePMarques/MP2RAGE-related-scripts}{MATLAB code} made publicly available by José P. Marques.
 #'
-#' For methodological details, see \href{https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.1910150117}{MPRAGE paper} and \href{https://www.sciencedirect.com/science/article/abs/pii/S1053811909010738}{MP2RAGE paper}.
+#' For methodological details, see \href{https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.1910150117}{MPRAGE} and \href{https://www.sciencedirect.com/science/article/abs/pii/S1053811909010738}{MP2RAGE}.
+#'
+#' Please cite the linked papers if you used these methods in your work.
 #'
 #' @author Sriranga Kashyap
 #'
+#' @param mprage_tr (required) \emph{TR} of the MP2RAGE in s
+#' @param flash_tr (required) \emph{TR} of the FLASH readout in s
+#' @param inv_times_a_b (required) \eqn{c(TI1,TI2)}
+#' @param flip_angle_a_b_deg (required) \emph{c(\eqn{\alpha}1,\eqn{\alpha}2)}
+#' @param num_z_slices (required) calculate as: \eqn{slices_per_slab * c(slice_partial_fourier-0.5,0.5)}
+#' @param sequence_type (has default) \emph{"normal"}, set to \emph{NULL} for water excitation
+#' @param t1_vector (has default) \emph{NULL}, provide input vector as necessary
+#' @param b0 (has default) \emph{7.0} can be \emph{3.0}
+#' @param m0 (has default) \emph{1.0}
+#' @param inversion_efficiency (has default) \emph{0.96} is the efficiency of the Siemens MP2RAGE inversion pulse
+#' @param n_images (has default) \emph{2}, change if required
+#'
 #' @export
+#'
 #' @return Data as a numerical array
+#'
 #' @importFrom pracma strcmp isempty zeros
+#'
 #' @examples
-#' Signal <- mp2rage_bloch_func(mprage_tr,
-#'                       inv_times_a_b,
-#'                       num_z_slices,
-#'                       flash_tr,
-#'                       flip_angle_a_b_deg,
-#'                       sequence_type="normal",
-#'                       t1_vector,
-#'                       ...)
+#' mp2rage_params <- list(
+#'                    mprage_tr = 5.0,
+#'                    flash_tr = 6.9e-3,
+#'                    inv_times_a_b = c(900e-3,2750e-3),
+#'                    flip_angle_a_b_deg = c(5,3),
+#'                    num_z_slices = c(120,120)
+#'                    )
+#'
+#' \dontrun{
+#' signal <- mp2rage_bloch_func(
+#'                    mp2rage_params$mprage_tr,
+#'                    mp2rage_params$flash_tr,
+#'                    mp2rage_params$inv_times_a_b,
+#'                    mp2rage_params$flip_angle_a_b_deg,
+#'                    mp2rage_params$num_z_slices,
+#'                    sequence_type = "normal",
+#'                    t1_vector = NULL,
+#'                    b0 = 7,
+#'                    m0 = 1,
+#'                    inversion_efficiency = 0.96,
+#'                    n_images = 2
+#'                    )}
 
 mp2rage_bloch_func <-
   function(mprage_tr,

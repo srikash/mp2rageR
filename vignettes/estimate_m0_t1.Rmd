@@ -1,0 +1,99 @@
+---
+title: "Estimate M0 and T1 maps"
+author: "Sriranga Kashyap"
+date: "`r Sys.Date()`"
+output: rmarkdown::pdf_document
+vignette: >
+  %\VignetteIndexEntry{Estimate M0 and T1 maps}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, include=FALSE}
+library(akima)
+library(mp2rageR)
+library(neurobase)
+library(pracma)
+library(signal)
+```
+
+### Set working directory
+```{r data directory,eval=FALSE,message=FALSE,warnings=FALSE}
+working_dir <- "~/mp2rage_data"
+```
+
+### Provide input NIfTI filenames
+```{r input data,eval=FALSE,message=FALSE,warnings=FALSE}
+# MP2RAGE UNI
+in_uni <- paste0(working_dir, "/MP2RAGE_UNI.nii.gz")
+
+# MP2RAGE INV2
+in_inv2 <- paste0(working_dir, "/MP2RAGE_INV2.nii.gz")
+```
+
+### Provide output NIfTI filenames
+```{r output data,eval=FALSE,message=FALSE,warnings=FALSE}
+# MP2RAGE T1 map
+out_t1 <-
+  paste0(working_dir, "/MP2RAGE_Est_T1.nii.gz")
+
+# MP2RAGE M0 map
+out_m0 <-
+  paste0(working_dir, "/MP2RAGE_Est_M0.nii.gz")
+```
+
+### Provide MP2RAGE sequence parameters from protocol
+```{r mp2rage parameters,eval=FALSE,message=FALSE,warnings=FALSE}
+# MP2RAGE parameters
+slices_per_slab <- 240
+slice_partial_fourier <- 8 / 8
+
+mp2rage_params <-
+  list(
+    mprage_tr = 5.0,
+    flash_tr = 6.9e-3,
+    inv_times_a_b = c(900e-3, 2750e-3),
+    flip_angle_a_b_deg = c(5, 3),
+    num_z_slices = NULL
+  )
+
+mp2rage_params$num_z_slices <-
+  slices_per_slab * c(slice_partial_fourier - 0.5, 0.5)
+```
+
+# Estimate M0 and T1 maps
+```{r begin estimation,eval=FALSE,message=FALSE,warnings=FALSE}
+# Load UNI data
+nii_uni <- readnii(in_uni)
+data_uni <- nii_uni@.Data
+
+# Load INV2 data
+nii_inv2 <- readnii(in_inv2)
+data_inv2 <- nii_inv2@.Data
+
+# Estimate M0 and T1
+list_of_t1_m0 <- mp2rage_estimate_t1_m0(in_uni_data = data_uni,
+                                        in_inv2_data = data_inv2,
+                                        param_list_mp2rage = mp2rage_params)
+
+```
+
+### Write outputs
+```{r write output,eval=FALSE,message=FALSE,warnings=FALSE}
+# Load NIfTI structure from UNI and write out M0 map
+nii_m0 <- nii_uni
+nii_m0@.Data <- list_of_t1_m0$m0_map
+writenii(nim = nii_m0, filename = out_m0)
+
+# Load NIfTI structure from UNI and write out T1 map
+nii_t1 <- nii_uni
+nii_t1@.Data <- list_of_t1_m0$t1_map
+writenii(nim = nii_t1, filename = out_t1)
+```

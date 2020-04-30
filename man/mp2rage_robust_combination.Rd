@@ -17,9 +17,9 @@ mp2rage_robust_combination(
 
 \item{in_inv2}{(required) path to the magnitude MP2RAGE INV2 NIfTI file}
 
-\item{in_uni}{(required) path to the magnitude M?mp2P2RAGE UNI NIfTI file}
+\item{in_uni}{(required) path to the magnitude MP2RAGE UNI NIfTI file}
 
-\item{out_uni}{(optional)  path to background suppressed MP2RAGE uni NIfTI file}
+\item{out_uni}{(optional)  path to background suppressed MP2RAGE UNI NIfTI file}
 
 \item{regularisation}{(optional) a scalar (1-10) noise supression strength}
 }
@@ -29,18 +29,20 @@ Data as a numerical array (not NIfTI, unless out_uni is specified)
 \description{
 \code{mp2rage_robust_combination} is part of the \pkg{mp2rageR} package.
 
-\pkg{mp2rageR} is the R implementation of MATLAB code made publicly available by \href{https://github.com/JosePMarques/MP2RAGE-related-scripts}{José P. Marques}.
+\pkg{mp2rageR} is the R implementation of \href{https://github.com/JosePMarques/MP2RAGE-related-scripts}{MATLAB code} made publicly available by José P. Marques.
 
-For methodological details, see \href{https://www.sciencedirect.com/science/article/abs/pii/S1053811909010738}{MP2RAGE sequence} and \href{http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0099676}{MP2RAGE background supression algorithm}.
+For methodological details, see \href{https://www.sciencedirect.com/science/article/abs/pii/S1053811909010738}{MP2RAGE} and \href{http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0099676}{MP2RAGE background supression}.
 
-Please cite the aforementioned papers if you used these methods in your work.
+Please cite the linked papers if you used these methods in your work.
 }
 \examples{
-mp2rage_robust <- mp2rage_robust_combination("sub-01_inv1.nii.gz",
-"sub-01_inv2.nii.gz",
-"sub-01_uni.nii.gz",
-"sub-01_out_uni.nii.gz",
-regularisation = 10)
+\dontrun{
+mp2rage_robust <- mp2rage_robust_combination(
+                            "sub-01_inv1.nii.gz",
+                            "sub-01_inv2.nii.gz",
+                            "sub-01_uni.nii.gz",
+                            "sub-01_out_uni.nii.gz",
+                             regularisation = 10)}
 }
 \author{
 Sriranga Kashyap

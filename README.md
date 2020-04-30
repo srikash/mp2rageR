@@ -1,1 +1,14 @@
-mp2rageR
+## mp2rageR
+
+**mp2rageR** is the R implementation of \href{https://github.com/JosePMarques/MP2RAGE-related-scripts}{MATLAB code} made publicly available by José P. Marques.
+
+For methodological details, see \href{https://www.sciencedirect.com/science/article/abs/pii/S1053811909010738}{MP2RAGE}, \href{https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.23145}{Sa2RAGE} and \href{https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0069294}{Sa2RAGE correction}.
+
+Some examples of using the **mp2rageR** package include:
+1. Denoise MP2RAGE background
+2. Correct T1 values using Sa2RAGE- or TFL-based B1 maps
+3. Estimate M0 map
+
+See vignettes for details.
+
+
