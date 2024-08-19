@@ -1,4 +1,4 @@
-## mp2rageR
+# mp2rageR [![DOI](https://zenodo.org/badge/13345192.svg)](https://zenodo.org/badge/latestdoi/13345192)
 
 **mp2rageR** is based off the [MATLAB code](https://github.com/JosePMarques/MP2RAGE-related-scripts) made publicly available by José P. Marques.
 
